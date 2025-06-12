@@ -5,7 +5,7 @@ import streamlit as st
 import numpy as np
 import os
 import joblib
-import plotly
+import plotly.express as px
 
 # Load in our data!
 data_path = os.path.join("data", "clean_real_estate_data.csv")
@@ -83,8 +83,98 @@ if submitted:
     prediction = model.predict(input_data)[0]
     st.success(f"Esimated Listing Price: ${prediction:,.0f}")
 
-tab1, = st.tabs(["Visualization"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Visualization", "Model Information", "Model Insights", "Raw Data", "About"])
 
+# Quick visualization comparing price vs square footage, which is our most importance feature.
 with tab1:
     st.subheader("Visualization")
-    st.plotly_chart(df)
+    fig = px.scatter(
+        df,
+        x = 'sqft',
+        y = 'listPrice',
+        color = 'type',
+        title = 'Price vs Square footage by Home Type',
+        labels = {'sqft': 'Square Footage', 'listPrice' : 'Listing Price' }
+    )
+
+    st.plotly_chart(fig)
+
+# Give some information to the user about the model
+with tab2:
+    st.title("Model Information")
+
+    st.markdown("### Model type: Random Forest Regressor")
+    st.markdown("---")
+    st.markdown("- R^2 Score 0.87")
+    st.markdown("- MAE : $18,000")
+
+    with open(model_path, "rb") as f:
+        model_bytes = f.read()
+
+    st.download_button(
+        label = "Download Trained Model (.pkl)",
+        data = model_bytes, 
+        file_name = "houe_price_model.pkl",
+        mime = "application/octet-stream"
+    )
+
+# Our raw data tab, be able to show users raw data as well as give them the ability to download it.
+with tab4:
+    st.subheader("Raw Dataset Preview")
+    st.markdown("Below is a preview of the cleaned real estate data used to train the model.")
+
+    max_rows = len(df)
+    num_rows = st.slider("Number of rows to preview", min_value = 10, max_value = min(2000, max_rows), value = 50, step = 10)
+
+    st.dataframe(df.head(num_rows), use_container_width = True)
+
+    csv = df.to_csv(index = False).encode("utf-8")
+    st.download_button(
+        label = "Download CSV",
+        data = csv,
+        file_name = "real_estate.csv",
+        mime = "text/csv"
+    )
+
+# Lets show some feature importances
+with tab3:
+    importances = model.feature_importances_
+    features = model.feature_names_in_
+
+    # Sort the features by importance
+    importance_df = pd.DataFrame({
+        "Feature": features,
+        "Importance" : importances,
+    }).sort_values(by = "Importance", ascending = False)
+
+    # Plot using plotly
+    fig = px.bar(
+        importance_df,
+        x = "Importance",
+        y = "Feature",
+        orientation = "h",
+        title = "Feature Importances (Sorted)",
+        labels = {"Importance" : "Importance", "Feature" : "Feature"}
+    )
+
+    fig.update_layout(yaxis = dict (autorange = "reversed"))
+
+    st.plotly_chart(fig)
+
+    # ABOUT ME!!!!!!
+    with tab5:
+        st.subheader("About the Developer")
+    
+        st.markdown("""
+        ### Julian Gutierrez  
+        Aspiring Data Scientist | Machine Learning Enthusiast | Based in Chicago  
+                    
+        Graduated from the University of Illinois Urbana-Champaign with a B.S. in Information Sciences (May 2025).
+    
+        I built this project to demonstrate real-world applications of machine learning in the housing market. It combines data wrangling, feature engineering, predictive modeling, and interactive dashboard design.
+    
+        - Tools used: Python, Pandas, Streamlit, Plotly, scikit-learn  
+        - Skills: Model deployment, data visualization, user interface design  
+        - [GitHub](https://github.com/JulianGut2) | [LinkedIn](https://linkedin.com/in/juliangutierrez02)  
+    
+        """)
