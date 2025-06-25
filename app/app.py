@@ -153,7 +153,7 @@ with tab3:
         x = "Importance",
         y = "Feature",
         orientation = "h",
-        title = "Feature Importances (Sorted)",
+        title = "Feature Importance (Sorted)",
         labels = {"Importance" : "Importance", "Feature" : "Feature"}
     )
 
